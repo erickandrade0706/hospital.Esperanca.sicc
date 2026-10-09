@@ -1,0 +1,109 @@
+### Arquivo de testes da API (IntelliJ: clique na seta verde ao lado de cada requisição).
+### Rode o "1. Login" primeiro: ele guarda o token para as demais.
+
+### 1. Login (administrador)
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{ "identificacao": "1001", "senha": "admin123" }
+
+> {% client.global.set("token", response.body.token); %}
+
+### 2. Usuário logado
+GET http://localhost:8080/api/auth/me
+Authorization: Bearer {{token}}
+
+### 3. Sem token -> 401
+GET http://localhost:8080/api/colaboradores
+
+### 4. Listar colaboradores
+GET http://localhost:8080/api/colaboradores
+Authorization: Bearer {{token}}
+
+### 5. Cadastrar colaborador
+POST http://localhost:8080/api/colaboradores
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "matricula": "2003",
+  "nome": "Carla Dias",
+  "cpf": "345.678.901-22",
+  "funcaoId": 1,
+  "admissao": "2024-02-01",
+  "contato": "(21) 99999-0000",
+  "status": "Ativo"
+}
+
+### 6. REGRA: matrícula repetida -> 409
+POST http://localhost:8080/api/colaboradores
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "matricula": "2001",
+  "nome": "Outra Pessoa",
+  "cpf": "999.888.777-66",
+  "funcaoId": 1,
+  "admissao": "2024-02-01"
+}
+
+### 7. REGRA: campos obrigatórios vazios -> 400 com a mensagem de cada campo
+POST http://localhost:8080/api/colaboradores
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "matricula": "", "nome": "" }
+
+### 8. Listar EPIs (anote os ids)
+GET http://localhost:8080/api/epis
+Authorization: Bearer {{token}}
+
+### 9. Entregar EPI válido (epiId 1 = Luva de Látex) -> 201 e baixa o estoque
+POST http://localhost:8080/api/movimentacoes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "tipo": "Entrega",
+  "matricula": "2001",
+  "epiId": 1,
+  "quantidade": 2,
+  "data": "2026-10-01",
+  "status": "Concluído",
+  "observacoes": "Primeira entrega"
+}
+
+### 10. REGRA: entregar EPI vencido (epiId 3 = Óculos de Proteção) -> 422
+POST http://localhost:8080/api/movimentacoes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "tipo": "Entrega",
+  "matricula": "2001",
+  "epiId": 3,
+  "quantidade": 1,
+  "data": "2026-10-01",
+  "status": "Concluído"
+}
+
+### 11. Estoque e histórico
+GET http://localhost:8080/api/estoque
+Authorization: Bearer {{token}}
+
+###
+GET http://localhost:8080/api/estoque/movimentacoes
+Authorization: Bearer {{token}}
+
+### 12. Login do RH e tentativa de acessar EPIs -> 403 (perfil sem permissão)
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{ "identificacao": "mariana@hospitalesperanca.com", "senha": "rh123" }
+
+> {% client.global.set("tokenRh", response.body.token); %}
+
+###
+GET http://localhost:8080/api/epis
+Authorization: Bearer {{tokenRh}}
